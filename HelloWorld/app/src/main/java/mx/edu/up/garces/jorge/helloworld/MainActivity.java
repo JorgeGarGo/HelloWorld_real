@@ -1,17 +1,34 @@
 package mx.edu.up.garces.jorge.helloworld;
 
+import android.os.AsyncTask;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.ListView;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 
 
 public class MainActivity extends ActionBarActivity {
-
+    ListView rssListView;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        rssListView = (ListView) findViewById(R.id.listViewfeed);
+       new GetFeed().execute("http://eljorgega.tumblr.com/rss");
     }
 
     @Override
@@ -35,4 +52,49 @@ public class MainActivity extends ActionBarActivity {
 
         return super.onOptionsItemSelected(item);
     }
+
+    public InputStream downloadXML (String xmlString) throws IOException{
+        URL url = new URL(xmlString);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setReadTimeout(10000);
+        conn.setConnectTimeout(10000);
+        conn.setRequestMethod("GET");
+        conn.setDoInput(true);
+        conn.connect();
+        return conn.getInputStream();
+    }
+
+    class GetFeed extends AsyncTask<String,String,String>{
+        protected void onPreExecute(){
+
+        }
+        protected String doInBackground(String... feedurl){
+            try {
+                InputStream algo = downloadXML(feedurl[0]);
+                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+                DocumentBuilder db = factory.newDocumentBuilder();
+                Document dom = db.parse(algo);
+                NodeList nl = dom.getElementsByTagName("item");
+                if(nl != null && nl.getLength() > 0){
+                    for(int i = 0; i < nl.getLength(); i++){
+                        Element el = (Element) nl.item(i);
+                        String title = el.getElementsByTagName("title").item(0).getTextContent();
+                        Log.d("Titulo", title);
+                    }
+                }
+
+            }catch (Throwable t){
+
+            }
+            return null;
+        }
+        protected void onProgressUpdate(String... values){
+
+        }
+        protected void onPostExecute(String result){
+
+        }
+
+    }
+
 }
