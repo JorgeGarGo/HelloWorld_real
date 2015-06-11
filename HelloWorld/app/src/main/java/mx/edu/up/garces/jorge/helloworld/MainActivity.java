@@ -1,11 +1,14 @@
 package mx.edu.up.garces.jorge.helloworld;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
 import org.w3c.dom.Document;
@@ -16,6 +19,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -28,6 +34,7 @@ public class MainActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         rssListView = (ListView) findViewById(R.id.listViewfeed);
+        rssListView.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, new ArrayList<String>()));
        new GetFeed().execute("http://eljorgega.tumblr.com/rss");
     }
 
@@ -65,10 +72,12 @@ public class MainActivity extends ActionBarActivity {
     }
 
     class GetFeed extends AsyncTask<String,String,String>{
+        private ArrayAdapter<String> adapter;
         protected void onPreExecute(){
-
+            adapter = (ArrayAdapter<String>) rssListView.getAdapter();
         }
         protected String doInBackground(String... feedurl){
+
             try {
                 InputStream algo = downloadXML(feedurl[0]);
                 DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -79,7 +88,17 @@ public class MainActivity extends ActionBarActivity {
                     for(int i = 0; i < nl.getLength(); i++){
                         Element el = (Element) nl.item(i);
                         String title = el.getElementsByTagName("title").item(0).getTextContent();
-                        Log.d("Titulo", title);
+                        String description = el.getElementsByTagName("description").item(0).getTextContent();
+
+                        Pattern p = Pattern.compile("src=\"(.*?)\"");
+                        Matcher m = p.matcher(description);
+                        if(m.find()){
+                            Log.d("imagen",m.group(1));
+                            InputStream a = downloadXML(m.group(1));
+                            Bitmap bmp = BitmapFactory.decodeStream(a);
+                        }
+
+                        publishProgress(title);
                     }
                 }
 
@@ -89,7 +108,7 @@ public class MainActivity extends ActionBarActivity {
             return null;
         }
         protected void onProgressUpdate(String... values){
-
+            adapter.add(values[0]);
         }
         protected void onPostExecute(String result){
 
